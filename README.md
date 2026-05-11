@@ -3,4 +3,4 @@ Extract and Download .mp3 from any video file.
 
 Website - [Audio Extractor](https://swaraj-sg.github.io/Audio-Extractor/)
 
-Just visit the website mentioned on the side.
+Just visit the website mentioned on the side or just click the link above.
