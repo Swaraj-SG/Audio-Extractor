@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video to MP3 — Extract Audio Only</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--bg2:#1a1a1a;--bg3:#242424;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);
+  --text:#f0f0f0;--text2:#999;--text3:#555;
+  --green:#1D9E75;--red:#E24B4A;--blue:#378ADD;
+  --radius:10px;--radius-lg:14px;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1rem;padding-top:5.5rem}
+.navbar{position:fixed;top:16px;left:50%;transform:translateX(-50%);width:calc(100% - 2rem);max-width:780px;background:rgba(15,15,15,0.20);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid rgba(255,255,255,0.1);border-radius:16px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:100}
+.nav-left{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+.nav-left:hover .nav-name{color:var(--text2)}
+.nav-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:var(--text2);flex-shrink:0;overflow:hidden}
+.nav-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.nav-name{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.2px;display:flex;align-items:center;gap:6px}
+.nav-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.nav-right{display:flex;align-items:center;gap:6px}
+.nav-icon{width:32px;height:32px;border-radius:8px;background:transparent;border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;color:var(--text2);transition:background 0.15s,color 0.15s}
+.nav-icon:hover{background:var(--bg2);color:var(--text)}
+.nav-icon svg{width:16px;height:16px}
+.container{max-width:780px;margin:0 auto}
+.header{margin-bottom:2rem}
+.header h1{font-size:28px;font-weight:600;letter-spacing:-0.5px}
+.header p{font-size:14px;color:var(--text2);margin-top:6px}
+.badges{margin-top:10px}
+.badge{display:inline-block;font-size:11px;padding:3px 8px;border-radius:20px;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);margin-right:6px}
+.drop-zone{border:1.5px dashed var(--border2);border-radius:var(--radius-lg);padding:3rem 1.5rem;text-align:center;cursor:pointer;transition:background 0.15s,border-color 0.15s;background:var(--bg2)}
+.drop-zone:hover,.drop-zone.drag{background:var(--bg3);border-color:rgba(255,255,255,0.3)}
+.drop-icon{width:40px;height:40px;margin:0 auto 12px;opacity:0.4}
+.drop-zone h2{font-size:16px;font-weight:500;margin-bottom:6px}
+.drop-zone p{font-size:13px;color:var(--text2)}
+.drop-zone span{display:block;font-size:11px;color:var(--text3);margin-top:10px}
+#fileInput{display:none}
+.file-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-top:14px;display:none;align-items:center;gap:14px}
+.file-icon{width:40px;height:40px;background:var(--bg3);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.file-icon svg{width:20px;height:20px;color:var(--text2)}
+.file-meta{flex:1;min-width:0}
+.file-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{font-size:12px;color:var(--text3);margin-top:2px}
+.file-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;padding:4px 8px;border-radius:6px;line-height:1}
+.file-remove:hover{color:var(--text);background:var(--bg3)}
+.ctrl-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:12px;display:none}
+.ctrl-box label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);display:block;margin-bottom:8px}
+.quality-row{display:flex;align-items:center;gap:10px}
+.quality-row input[type=range]{flex:1;accent-color:var(--text)}
+.ctrl-note{font-size:11px;color:var(--text3);margin-top:6px}
+.waveform-wrap{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-top:14px;display:none}
+.waveform-label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);margin-bottom:10px}
+#waveCanvas{width:100%;height:80px;border-radius:6px;display:block}
+.audio-player{margin-top:10px}
+.audio-player audio{width:100%;height:36px}
+.progress-wrap{margin-top:14px;display:none}
+.progress-track{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:var(--text);border-radius:2px;transition:width 0.15s;width:0%}
+.progress-label{font-size:11px;color:var(--text3);margin-top:6px;text-align:right}
+.status-row{display:none;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--text2)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green)}.dot-blue{background:var(--blue);animation:pulse 1s infinite}.dot-red{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.actions{display:none;gap:10px;margin-top:16px}
+.btn-convert{flex:1;padding:12px;background:var(--text);color:var(--bg);border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.15s}
+.btn-convert:hover:not(:disabled){opacity:0.88}
+.btn-convert:disabled{opacity:0.35;cursor:not-allowed}
+.btn-clear{padding:12px 20px;background:transparent;color:var(--text2);border:0.5px solid var(--border2);border-radius:var(--radius);font-size:14px;cursor:pointer}
+.btn-clear:hover{background:var(--bg2)}
+.footer{margin-top:3rem;padding-top:1.5rem;border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.footer p{font-size:12px;color:var(--text3)}
+.footer a{color:var(--text2);text-decoration:none;font-size:12px}
+.footer a:hover{color:var(--text)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:12px 18px;font-size:13px;color:var(--text);box-shadow:0 4px 20px rgba(0,0,0,0.4);transform:translateY(80px);opacity:0;transition:transform 0.25s,opacity 0.25s;z-index:999;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="nav-left" href="https://github.com/Swaraj-SG" target="_blank" rel="noopener" style="text-decoration:none">
+    <div class="nav-avatar"><img src="https://avatars.githubusercontent.com/u/170101789?v=4" alt="Swaraj-SG" /></div>
+    <div>
+      <div class="nav-name" style="display:flex;align-items:center;gap:6px">
+        Swaraj-SG
+        
+      </div>
+      <div class="nav-sub">Developer &bull; Tools &amp; Apps</div>
+    </div>
+  </a>
+  <div class="nav-right">
+    <a class="nav-icon" href="https://github.com/Swaraj-SG" target="_blank" rel="noopener" title="GitHub">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+    </a>
+    <a class="nav-icon" href="https://www.instagram.com/g_swaraj__" target="_blank" rel="noopener" title="Instagram">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.5" fill="currentColor"/></svg>
+    </a>
+    <a class="nav-icon" href="https://buymeacoffee.com/swarajsg" title="Donate">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402z"/></svg>
+    </a>
+  </div>
+</nav>
+  
+<div class="container">
+  <div class="header">
+    <h1>Video to MP3</h1>
+    <p>Extract audio from any video — fully offline, no uploads, runs in your browser.</p>
+    <div class="badges">
+      <span class="badge">MP4</span><span class="badge">MKV</span><span class="badge">AVI</span><span class="badge">MOV</span><span class="badge">WEBM</span><span class="badge">FLV</span><span class="badge">3GP</span><span class="badge">→ MP3</span>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+    </svg>
+    <h2>Drop a video file here</h2>
+    <p>or click to browse</p>
+    <span>MP4 · MKV · AVI · MOV · WEBM · FLV · 3GP</span>
+    <input type="file" id="fileInput" accept="video/*,.mkv,.avi,.flv,.3gp">
+  </div>
+
+  <div class="file-card" id="fileCard">
+    <div class="file-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+    </div>
+    <div class="file-meta">
+      <div class="file-name" id="fileName">—</div>
+      <div class="file-size" id="fileSize">—</div>
+    </div>
+    <button class="file-remove" id="removeBtn">&times;</button>
+  </div>
+
+  <div class="ctrl-box" id="ctrlBox">
+    <label>MP3 Bitrate &nbsp;<span id="bitrateVal" style="color:var(--text);font-weight:600">192 kbps</span></label>
+    <div class="quality-row">
+      <input type="range" id="bitrateSlider" min="0" max="4" value="2" step="1">
+    </div>
+    <p class="ctrl-note" id="bitrateNote">Good quality — recommended for music</p>
+  </div>
+
+  <div class="waveform-wrap" id="waveformWrap">
+    <div class="waveform-label">Audio Preview</div>
+    <canvas id="waveCanvas"></canvas>
+    <div class="audio-player"><audio id="audioPlayer" controls></audio></div>
+  </div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+    <p class="progress-label" id="progLabel">Processing…</p>
+  </div>
+
+  <div class="status-row" id="statusRow">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText"></span>
+  </div>
+
+  <div class="actions" id="actionsRow">
+    <button class="btn-convert" id="convertBtn">Extract MP3</button>
+    <button class="btn-clear" id="clearBtn">Clear</button>
+  </div>
+
+  <div class="footer">
+    <p>All processing happens in your browser. No files leave your device.</p>
+    <a href="https://github.com/Swaraj-SG" target="_blank" rel="noopener">GitHub - Swaraj-SG</a>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+<script>
+const dropZone     = document.getElementById('dropZone');
+const fileInput    = document.getElementById('fileInput');
+const fileCard     = document.getElementById('fileCard');
+const fileName     = document.getElementById('fileName');
+const fileSize     = document.getElementById('fileSize');
+const removeBtn    = document.getElementById('removeBtn');
+const ctrlBox      = document.getElementById('ctrlBox');
+const bitrateSlider= document.getElementById('bitrateSlider');
+const bitrateVal   = document.getElementById('bitrateVal');
+const bitrateNote  = document.getElementById('bitrateNote');
+const waveformWrap = document.getElementById('waveformWrap');
+const waveCanvas   = document.getElementById('waveCanvas');
+const audioPlayer  = document.getElementById('audioPlayer');
+const progressWrap = document.getElementById('progressWrap');
+const progFill     = document.getElementById('progFill');
+const progLabel    = document.getElementById('progLabel');
+const statusRow    = document.getElementById('statusRow');
+const statusDot    = document.getElementById('statusDot');
+const statusText   = document.getElementById('statusText');
+const actionsRow   = document.getElementById('actionsRow');
+const convertBtn   = document.getElementById('convertBtn');
+const clearBtn     = document.getElementById('clearBtn');
+const toastEl      = document.getElementById('toast');
+
+let currentFile = null;
+
+const bitrateMap = [
+  {kbps:64,  label:'64 kbps',  note:'Low — voice / podcasts'},
+  {kbps:128, label:'128 kbps', note:'Standard quality'},
+  {kbps:192, label:'192 kbps', note:'Good quality — recommended for music'},
+  {kbps:256, label:'256 kbps', note:'High quality'},
+  {kbps:320, label:'320 kbps', note:'Maximum quality'},
+];
+
+bitrateSlider.oninput = () => {
+  const b = bitrateMap[bitrateSlider.value];
+  bitrateVal.textContent = b.label;
+  bitrateNote.textContent = b.note;
+};
+
+function toast(msg, dur=3500){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(()=>toastEl.classList.remove('show'), dur);
+}
+function setStatus(type, msg){
+  statusRow.style.display = 'flex';
+  statusDot.className = 'dot dot-'+type;
+  statusText.textContent = msg;
+}
+function fmtSize(b){
+  if(b>1073741824) return (b/1073741824).toFixed(2)+' GB';
+  if(b>1048576) return (b/1048576).toFixed(1)+' MB';
+  if(b>1024) return Math.round(b/1024)+' KB';
+  return b+' B';
+}
+
+dropZone.onclick = ()=>fileInput.click();
+dropZone.ondragover = e=>{e.preventDefault();dropZone.classList.add('drag')};
+dropZone.ondragleave = ()=>dropZone.classList.remove('drag');
+dropZone.ondrop = e=>{e.preventDefault();dropZone.classList.remove('drag');handleFile(e.dataTransfer.files[0])};
+fileInput.onchange = ()=>handleFile(fileInput.files[0]);
+
+function handleFile(f){
+  if(!f) return;
+  if(!f.type.startsWith('video/') && !f.name.match(/\.(mkv|avi|flv|3gp|mov|mp4|webm|wmv)$/i)){
+    toast('Please upload a video file'); return;
+  }
+  currentFile = f;
+  fileName.textContent = f.name;
+  fileSize.textContent = fmtSize(f.size);
+  fileCard.style.display = 'flex';
+  ctrlBox.style.display = 'block';
+  actionsRow.style.display = 'flex';
+  waveformWrap.style.display = 'none';
+  progressWrap.style.display = 'none';
+  statusRow.style.display = 'none';
+  audioPlayer.src = '';
+}
+
+removeBtn.onclick = clearAll;
+clearBtn.onclick = clearAll;
+function clearAll(){
+  currentFile = null;
+  fileCard.style.display = 'none';
+  ctrlBox.style.display = 'none';
+  actionsRow.style.display = 'none';
+  waveformWrap.style.display = 'none';
+  progressWrap.style.display = 'none';
+  statusRow.style.display = 'none';
+  audioPlayer.src = '';
+  fileInput.value = '';
+  progFill.style.width = '0%';
+}
+
+function drawWaveform(audioBuffer){
+  const raw = audioBuffer.getChannelData(0);
+  const dpr = window.devicePixelRatio||1;
+  const W = waveCanvas.offsetWidth * dpr;
+  const H = 80 * dpr;
+  waveCanvas.width = W; waveCanvas.height = H;
+  const ctx = waveCanvas.getContext('2d');
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  ctx.fillRect(0,0,W,H);
+  const step = Math.ceil(raw.length/W);
+  const amp = H/2;
+  for(let i=0;i<W;i++){
+    let min=1,max=-1;
+    for(let j=0;j<step;j++){const v=raw[i*step+j]||0;if(v<min)min=v;if(v>max)max=v;}
+    const alpha = 0.4+Math.abs(max-min)*0.6;
+    ctx.fillStyle = `rgba(240,240,240,${alpha})`;
+    ctx.fillRect(i,(1+min)*amp,1,Math.max(1,(max-min)*amp));
+  }
+}
+
+function floatTo16Bit(arr){
+  const out = new Int16Array(arr.length);
+  for(let i=0;i<arr.length;i++){
+    const s=Math.max(-1,Math.min(1,arr[i]));
+    out[i]=s<0?s*0x8000:s*0x7FFF;
+  }
+  return out;
+}
+
+function encodeMP3(audioBuffer, kbps, onProgress){
+  return new Promise(resolve=>{
+    const sr = audioBuffer.sampleRate;
+    const ch = audioBuffer.numberOfChannels;
+    const enc = new lamejs.Mp3Encoder(ch, sr, kbps);
+    const left  = floatTo16Bit(audioBuffer.getChannelData(0));
+    const right = ch>1 ? floatTo16Bit(audioBuffer.getChannelData(1)) : left;
+    const chunk = 1152;
+    const mp3 = [];
+    const total = left.length;
+    let i=0;
+    function tick(){
+      const end = Math.min(i+chunk*80, total);
+      while(i<end){
+        const l=left.subarray(i,i+chunk);
+        const r=right.subarray(i,i+chunk);
+        const buf = ch>1 ? enc.encodeBuffer(l,r) : enc.encodeBuffer(l);
+        if(buf.length>0) mp3.push(new Int8Array(buf));
+        i+=chunk;
+      }
+      onProgress(Math.round(i/total*100));
+      if(i<total){ setTimeout(tick,0); }
+      else{
+        const fin=enc.flush();
+        if(fin.length>0) mp3.push(new Int8Array(fin));
+        resolve(new Blob(mp3,{type:'audio/mpeg'}));
+      }
+    }
+    tick();
+  });
+}
+
+convertBtn.onclick = async ()=>{
+  if(!currentFile) return;
+  convertBtn.disabled = true;
+  progressWrap.style.display = 'block';
+  waveformWrap.style.display = 'none';
+  progFill.style.width = '0%';
+  progLabel.textContent = 'Decoding video audio…';
+  setStatus('blue','Decoding audio…');
+
+  try{
+    const arrBuf = await currentFile.arrayBuffer();
+    const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const audioBuffer = await audioCtx.decodeAudioData(arrBuf);
+
+    progFill.style.width = '15%';
+    progLabel.textContent = 'Encoding MP3…';
+    setStatus('blue','Encoding MP3…');
+
+    // Show waveform
+    waveformWrap.style.display = 'block';
+    drawWaveform(audioBuffer);
+
+    const kbps = bitrateMap[bitrateSlider.value].kbps;
+    const mp3Blob = await encodeMP3(audioBuffer, kbps, pct=>{
+      progFill.style.width = (15+Math.round(pct*0.85))+'%';
+      progLabel.textContent = 'Encoding… '+pct+'%';
+    });
+
+    progFill.style.width = '100%';
+    progLabel.textContent = 'Done!';
+
+    const url = URL.createObjectURL(mp3Blob);
+    audioPlayer.src = url;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentFile.name.replace(/\.[^.]+$/,'')+'.mp3';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+    setStatus('green','MP3 extracted and downloaded ✓');
+    toast('MP3 downloaded! 🎵');
+  }catch(e){
+    console.error(e);
+    setStatus('red','Failed: '+e.message);
+    progLabel.textContent = 'Error';
+    toast('Error: '+e.message);
+  }
+  convertBtn.disabled = false;
+};
+</script>
+</body>
+</html>
